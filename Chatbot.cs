@@ -4,31 +4,19 @@ using System.Linq;
 using System.Media;
 using System.Speech.Synthesis;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Windows.Documents;
 
 namespace CybersecurityChatbotGUI
 {
     public class Chatbot
     {
-        // Memory storage
         private string userName;
         private string userInterest;
         private string lastTopic;
-        private Dictionary<string, string> userMemory = new Dictionary<string, string>();
-
-        // Keyword responses
-        private Dictionary<string, List<string>> keywordResponses;
-        private Dictionary<string, string> followUpResponses;
-
-        // Sentiment detection keywords
-        private Dictionary<string, string> sentimentResponses;
-
         private Random random = new Random();
         private SpeechSynthesizer speechSynthesizer;
-
-        // Track conversation history for follow-ups
-        private Queue<string> conversationHistory = new Queue<string>();
+        private Dictionary<string, List<string>> keywordResponses;
+        private Dictionary<string, string> followUpResponses;
+        private Dictionary<string, string> sentimentResponses;
 
         public Chatbot()
         {
@@ -39,79 +27,78 @@ namespace CybersecurityChatbotGUI
 
         private void InitializeResponses()
         {
-            keywordResponses = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["password"] = new List<string>
-                {
-                    "🔐 Create strong passwords with at least 12 characters, including uppercase, lowercase, numbers, and symbols.",
-                    "🔑 Never reuse passwords across different accounts. Use a password manager!",
-                    "🛡️ Enable two-factor authentication whenever possible for an extra layer of security."
-                },
-                ["scan"] = new List<string>
-                {
-                    "📱 Regularly scan your devices for malware using trusted antivirus software.",
-                    "🔍 Before downloading files, scan them with Windows Defender or your preferred antivirus.",
-                    "✅ Run weekly security scans to detect and remove potential threats."
-                },
-                ["privacy"] = new List<string>
-                {
-                    "👁️ Review privacy settings on social media to control who sees your information.",
-                    "🔒 Use a VPN when using public Wi-Fi to protect your personal data.",
-                    "📧 Avoid sharing personal information like your ID number or address in emails."
-                },
-                ["phishing"] = new List<string>
-                {
-                    "🎣 Never click on suspicious links in emails or text messages.",
-                    "⚠️ Check the sender's email address carefully - scammers use fake addresses.",
-                    "🔗 Hover over links before clicking to see the actual URL destination.",
-                    "📞 If an email seems urgent, contact the company directly using their official phone number."
-                },
-                ["malware"] = new List<string>
-                {
-                    "🦠 Keep your operating system and software updated to patch security vulnerabilities.",
-                    "💾 Only download software from official websites or trusted app stores.",
-                    "🚫 Don't click on pop-up ads claiming your computer is infected."
-                },
-                ["how are you"] = new List<string>
-                {
-                    "I'm doing great, thank you for asking! How can I help you with cybersecurity today?",
-                    "I'm fully secure and ready to assist you! What would you like to learn about?",
-                    "Feeling safe and sound! What cybersecurity topic interests you today?"
-                },
-                ["what's your purpose"] = new List<string>
-                {
-                    "My purpose is to educate South African citizens about staying safe online!",
-                    "I'm here to help you learn about cybersecurity threats and how to avoid them.",
-                    "Think of me as your personal cybersecurity assistant - ask me anything!"
-                },
-                ["what can i ask you about"] = new List<string>
-                {
-                    "You can ask me about: passwords, scanning for malware, privacy, phishing, or general cybersecurity tips!",
-                    "Try asking about 'password safety', 'phishing tips', 'privacy', or 'how to scan for malware'.",
-                    "I can help with password security, privacy protection, malware scanning, and spotting phishing attempts!"
-                }
-            };
+            keywordResponses = new Dictionary<string, List<string>>();
 
-            followUpResponses = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            // Add responses with lowercase keys for easier matching
+            keywordResponses.Add("password", new List<string>
             {
-                ["tell me more"] = "Sure! Let me give you more details about {topic}.",
-                ["another tip"] = "Here's another helpful tip about {topic}:",
-                ["explain more"] = "I'd be happy to explain further about {topic}.",
-                ["more"] = "Here's additional information about {topic}:"
-            };
+                "🔐 Create strong passwords with at least 12 characters including uppercase, lowercase, numbers, and symbols.",
+                "🔑 Never reuse passwords across different accounts. Use a password manager!",
+                "🛡️ Enable two-factor authentication whenever possible for extra security."
+            });
+
+            keywordResponses.Add("scan", new List<string>
+            {
+                "📱 Regularly scan your devices for malware using trusted antivirus software.",
+                "🔍 Before downloading files, scan them with Windows Defender first.",
+                "✅ Run weekly security scans to detect and remove potential threats."
+            });
+
+            keywordResponses.Add("privacy", new List<string>
+            {
+                "👁️ Review privacy settings on social media to control who sees your information.",
+                "🔒 Use a VPN when using public Wi-Fi to protect your personal data.",
+                "📧 Avoid sharing personal information like your ID number or address in emails."
+            });
+
+            keywordResponses.Add("phishing", new List<string>
+            {
+                "🎣 Never click on suspicious links in emails or text messages.",
+                "⚠️ Check the sender's email address carefully - scammers use fake addresses.",
+                "🔗 Hover over links before clicking to see the actual URL destination."
+            });
+
+            keywordResponses.Add("how are you", new List<string>
+            {
+                "I'm doing great! How can I help you with cybersecurity today?",
+                "I'm fully secure and ready to assist you!",
+                "Feeling safe and sound! What would you like to learn about?"
+            });
+
+            keywordResponses.Add("purpose", new List<string>
+            {
+                "My purpose is to educate South African citizens about staying safe online!",
+                "I'm here to help you learn about cybersecurity threats and how to avoid them.",
+                "Think of me as your personal cybersecurity assistant!"
+            });
+
+            keywordResponses.Add("ask about", new List<string>
+            {
+                "You can ask me about: passwords, scanning, privacy, phishing, or safe browsing!",
+                "Try asking about 'password safety', 'phishing tips', or 'privacy'.",
+                "I can help with password security, privacy protection, and spotting phishing attempts!"
+            });
+
+            keywordResponses.Add("help", new List<string>
+            {
+                "Available topics: password, scan, privacy, phishing.\nSay 'my name is [name]' so I remember you!\nSay 'I'm interested in [topic]' to share your interests.",
+                "Type 'password', 'scan', 'privacy', or 'phishing' to learn.\nI remember your name and interests too!"
+            });
+
+            followUpResponses = new Dictionary<string, string>();
+            followUpResponses.Add("tell me more", "Here's more information about {topic}:");
+            followUpResponses.Add("another tip", "Another helpful tip about {topic}:");
+            followUpResponses.Add("explain more", "Let me explain further about {topic}:");
         }
 
         private void InitializeSentimentResponses()
         {
-            sentimentResponses = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["worried"] = "It's completely normal to feel worried about online security. Don't worry - I'm here to help you stay safe! Let me share some practical tips.",
-                ["scared"] = "I understand your concern. Cybersecurity can feel overwhelming, but taking small steps makes a big difference. Here's what you can do:",
-                ["frustrated"] = "I hear your frustration. Online security can be annoying sometimes, but these precautions protect you. Let me simplify this for you:",
-                ["curious"] = "That's great that you're curious! Learning about cybersecurity is the first step to staying safe. Here's what you should know:",
-                ["confused"] = "I understand this can be confusing. Let me explain it in simpler terms:",
-                ["happy"] = "I'm glad you're in good spirits! Let me share something interesting about cybersecurity:"
-            };
+            sentimentResponses = new Dictionary<string, string>();
+            sentimentResponses.Add("worried", "It's completely normal to feel worried about online security. Don't worry - I'm here to help! Here's a tip:");
+            sentimentResponses.Add("scared", "I understand your concern. Let me share something that will help you feel safer:");
+            sentimentResponses.Add("frustrated", "I hear your frustration. Let me simplify this for you:");
+            sentimentResponses.Add("curious", "That's great that you're curious! Here's what you should know:");
+            sentimentResponses.Add("confused", "Let me explain this in simpler terms:");
         }
 
         public void PlayVoiceGreeting()
@@ -133,7 +120,7 @@ namespace CybersecurityChatbotGUI
             }
             catch (Exception)
             {
-                // Silently fail - UI will still work
+                // Silently continue if audio fails
             }
         }
 
@@ -147,8 +134,8 @@ namespace CybersecurityChatbotGUI
      \ \_______\ \__\ \__\ \__\ \__\ \_______\
       \|_______|\|__|\|__|\|__|\|__|\|_______|
       
-      🔐 CYBERSECURITY AWARENESS BOT 🔐
-      Protecting South African citizens online";
+              🔐 CYBERSECURITY BOT 🔐
+           Protecting South African citizens";
         }
 
         public string ProcessInput(string input)
@@ -158,88 +145,72 @@ namespace CybersecurityChatbotGUI
                 return "Please type a message so I can help you with cybersecurity!";
             }
 
-            // Store in conversation history for follow-ups
-            conversationHistory.Enqueue(input);
-            if (conversationHistory.Count > 5) conversationHistory.Dequeue();
+            // Convert to lowercase for easier matching
+            string lowerInput = input.ToLower();
 
-            // Check for sentiment first
-            string sentiment = DetectSentiment(input);
+            // Check for sentiment
+            string sentiment = DetectSentiment(lowerInput);
             if (sentiment != null && sentimentResponses.ContainsKey(sentiment))
             {
-                return sentimentResponses[sentiment] + " " + GetCybersecurityTip();
+                return sentimentResponses[sentiment] + " " + GetRandomCybersecurityTip();
             }
 
-            // Check for name extraction (first time user)
+            // Extract and remember name
             if (string.IsNullOrEmpty(userName))
             {
                 string extractedName = ExtractName(input);
                 if (extractedName != null)
                 {
                     userName = extractedName;
-                    userMemory["Name"] = userName;
                     return $"Nice to meet you, {userName}! I'll remember that. What would you like to learn about cybersecurity today?";
                 }
             }
 
-            // Check for interest extraction
-            string interest = ExtractInterest(input);
+            // Extract and remember interest
+            string interest = ExtractInterest(lowerInput);
             if (interest != null)
             {
                 userInterest = interest;
-                userMemory["Interest"] = interest;
-                return $"Great! I'll remember that you're interested in {interest}. It's a very important topic for staying safe online!";
+                return $"Great! I'll remember that you're interested in {interest}. It's very important for staying safe online!";
             }
 
-            // Check for follow-up requests
-            string followUpResponse = HandleFollowUp(input);
+            // Handle follow-up
+            string followUpResponse = HandleFollowUp(lowerInput);
             if (followUpResponse != null)
             {
                 return followUpResponse;
             }
 
             // Check for keywords
-            string keywordResponse = GetKeywordResponse(input);
+            string keywordResponse = GetKeywordResponse(lowerInput);
             if (keywordResponse != null)
             {
                 lastTopic = keywordResponse;
                 return keywordResponse;
             }
 
-            // Check if user is asking about stored memory
-            if (input.Contains("my name") || input.Contains("who am i"))
+            // Recall memory
+            if (lowerInput.Contains("my name") || lowerInput.Contains("who am i"))
             {
-                if (!string.IsNullOrEmpty(userName))
-                    return $"You told me your name is {userName}!";
-                else
-                    return "I don't know your name yet. What should I call you?";
+                return !string.IsNullOrEmpty(userName) ? $"You told me your name is {userName}!" : "I don't know your name yet. What should I call you?";
             }
 
-            if (input.Contains("my interest") || input.Contains("interested in"))
+            if (lowerInput.Contains("my interest") || lowerInput.Contains("interested in"))
             {
-                if (!string.IsNullOrEmpty(userInterest))
-                    return $"You're interested in {userInterest}. Would you like to learn more about that?";
-                else
-                    return "You haven't told me what cybersecurity topic interests you yet!";
+                return !string.IsNullOrEmpty(userInterest) ? $"You're interested in {userInterest}. Would you like to learn more?" : "You haven't told me what cybersecurity topic interests you yet.";
             }
 
-            // Default response
-            return "I'm not sure I understand. Can you try rephrasing? You can ask me about passwords, scanning for malware, privacy, or phishing.";
+            return "I'm not sure I understand. You can ask me about passwords, scanning, privacy, or phishing. Type 'help' to see options.";
         }
 
         private string GetKeywordResponse(string input)
         {
             foreach (var keyword in keywordResponses.Keys)
             {
-                if (input.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                if (input.Contains(keyword))
                 {
                     List<string> responses = keywordResponses[keyword];
-                    string selectedResponse = responses[random.Next(responses.Count)];
-
-                    // Store the topic for follow-ups
-                    lastTopic = keyword;
-                    userMemory["LastTopic"] = keyword;
-
-                    return selectedResponse;
+                    return responses[random.Next(responses.Count)];
                 }
             }
             return null;
@@ -251,18 +222,17 @@ namespace CybersecurityChatbotGUI
 
             foreach (var followUp in followUpResponses.Keys)
             {
-                if (input.Contains(followUp, StringComparison.OrdinalIgnoreCase))
+                if (input.Contains(followUp))
                 {
-                    if (keywordResponses.ContainsKey(lastTopic))
+                    foreach (var keyword in keywordResponses.Keys)
                     {
-                        var responses = keywordResponses[lastTopic];
-                        string newResponse = responses[random.Next(responses.Count)];
-                        return followUpResponses[followUp].Replace("{topic}", lastTopic) + " " + newResponse;
+                        if (lastTopic.Contains(keyword))
+                        {
+                            var responses = keywordResponses[keyword];
+                            return followUpResponses[followUp].Replace("{topic}", keyword) + " " + responses[random.Next(responses.Count)];
+                        }
                     }
-                    else
-                    {
-                        return $"Let me give you more information about cybersecurity. {GetCybersecurityTip()}";
-                    }
+                    return $"Let me give you more information. {GetRandomCybersecurityTip()}";
                 }
             }
             return null;
@@ -270,72 +240,68 @@ namespace CybersecurityChatbotGUI
 
         private string DetectSentiment(string input)
         {
-            if (Regex.IsMatch(input, @"worried|anxious|nervous|concerned", RegexOptions.IgnoreCase))
-                return "worried";
-            if (Regex.IsMatch(input, @"scared|terrified|fear|afraid", RegexOptions.IgnoreCase))
-                return "scared";
-            if (Regex.IsMatch(input, @"frustrated|annoyed|angry", RegexOptions.IgnoreCase))
-                return "frustrated";
-            if (Regex.IsMatch(input, @"curious|interested|want to learn", RegexOptions.IgnoreCase))
-                return "curious";
-            if (Regex.IsMatch(input, @"confused|don't understand|unclear", RegexOptions.IgnoreCase))
-                return "confused";
-            if (Regex.IsMatch(input, @"happy|great|awesome|excited", RegexOptions.IgnoreCase))
-                return "happy";
+            if (Regex.IsMatch(input, @"worried|anxious|nervous|concerned")) return "worried";
+            if (Regex.IsMatch(input, @"scared|terrified|fear|afraid")) return "scared";
+            if (Regex.IsMatch(input, @"frustrated|annoyed|angry")) return "frustrated";
+            if (Regex.IsMatch(input, @"curious|interested|want to learn")) return "curious";
+            if (Regex.IsMatch(input, @"confused|don't understand")) return "confused";
             return null;
         }
 
         private string ExtractName(string input)
         {
-            var nameMatch = Regex.Match(input, @"my name is (\w+)", RegexOptions.IgnoreCase);
-            if (nameMatch.Success) return nameMatch.Groups[1].Value;
+            string lowerInput = input.ToLower();
 
-            nameMatch = Regex.Match(input, @"call me (\w+)", RegexOptions.IgnoreCase);
-            if (nameMatch.Success) return nameMatch.Groups[1].Value;
-
-            nameMatch = Regex.Match(input, @"i am (\w+)", RegexOptions.IgnoreCase);
-            if (nameMatch.Success && !nameMatch.Groups[1].Value.Equals("worried", StringComparison.OrdinalIgnoreCase))
-                return nameMatch.Groups[1].Value;
-
+            if (lowerInput.Contains("my name is"))
+            {
+                int index = lowerInput.IndexOf("my name is") + 10;
+                string name = input.Substring(index).Trim().Split(' ')[0];
+                return name;
+            }
+            if (lowerInput.Contains("call me"))
+            {
+                int index = lowerInput.IndexOf("call me") + 7;
+                string name = input.Substring(index).Trim().Split(' ')[0];
+                return name;
+            }
+            if (lowerInput.Contains("i am") && !lowerInput.Contains("i am worried") && !lowerInput.Contains("i am scared"))
+            {
+                int index = lowerInput.IndexOf("i am") + 4;
+                string name = input.Substring(index).Trim().Split(' ')[0];
+                return name;
+            }
+            if (lowerInput.Contains("i'm") && !lowerInput.Contains("i'm interested"))
+            {
+                int index = lowerInput.IndexOf("i'm") + 3;
+                string name = input.Substring(index).Trim().Split(' ')[0];
+                return name;
+            }
             return null;
         }
 
         private string ExtractInterest(string input)
         {
-            string[] interests = { "password", "privacy", "phishing", "malware", "scanning" };
-            foreach (string interest in interests)
-            {
-                if (Regex.IsMatch(input, $@"interested in {interest}|like {interest}|want to learn about {interest}", RegexOptions.IgnoreCase))
-                {
-                    return interest;
-                }
-            }
+            if (input.Contains("interested in password") || input.Contains("like password")) return "password";
+            if (input.Contains("interested in privacy") || input.Contains("like privacy")) return "privacy";
+            if (input.Contains("interested in phishing") || input.Contains("like phishing")) return "phishing";
+            if (input.Contains("interested in scan") || input.Contains("like scanning")) return "scanning";
             return null;
         }
 
-        private string GetCybersecurityTip()
+        private string GetRandomCybersecurityTip()
         {
             string[] tips = {
                 "Always use strong, unique passwords for each account.",
                 "Enable two-factor authentication wherever possible.",
                 "Never share your passwords with anyone.",
                 "Keep your software and operating system updated.",
-                "Be careful what you download and click on.",
                 "Use antivirus software and keep it updated.",
-                "Back up your important files regularly.",
-                "Be cautious of unsolicited emails asking for personal information."
+                "Back up your important files regularly."
             };
             return tips[random.Next(tips.Length)];
         }
 
-        public string GetUserName()
-        {
-            return userName ?? "Friend";
-        }
-
-        public string GetUserInterest()
-        {
-            return userInterest ?? "cybersecurity";
-        }
+        public string GetUserName() => userName ?? "Friend";
+        public string GetUserInterest() => userInterest ?? "cybersecurity";
     }
 }
