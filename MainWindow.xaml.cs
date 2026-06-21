@@ -1,24 +1,15 @@
 ﻿using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 
 namespace CybersecurityChatbotGUI
 {
-    public partial class MainWindow : Window, INotifyPropertyChanged
+    public partial class MainWindow : Window
     {
         private Chatbot chatbot;
         private ObservableCollection<string> chatMessages;
-
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        protected void OnPropertyChanged([CallerMemberName] string name = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-        }
 
         public MainWindow()
         {
@@ -32,30 +23,22 @@ namespace CybersecurityChatbotGUI
             chatMessages = new ObservableCollection<string>();
             ChatHistoryListBox.ItemsSource = chatMessages;
 
-            // Play voice greeting
             Task.Run(() => chatbot.PlayVoiceGreeting());
-
-            // Display ASCII art
             AsciiArtTextBlock.Text = chatbot.GetAsciiArt();
 
-            // Welcome message
-            AddBotMessage("Hello! Welcome to the Cybersecurity Awareness Bot.");
-            AddBotMessage("I'm here to help you stay safe online.");
-            AddBotMessage("What's your name?");
+            AddBotMessage("🔐 Hello! Welcome to the Cybersecurity Awareness Bot.");
+            AddBotMessage("🇿🇦 I'm here to help South African citizens stay safe online.");
+            AddBotMessage("What's your name? (Example: 'My name is Thabo')");
+            AddBotMessage("💡 Try these commands:");
+            AddBotMessage("  • 'add task: Enable 2FA'");
+            AddBotMessage("  • 'show tasks'");
+            AddBotMessage("  • 'start quiz'");
+            AddBotMessage("  • 'show log'");
+            AddBotMessage("  • 'help'");
         }
 
-        private void SendButton_Click(object sender, RoutedEventArgs e)
-        {
-            SendUserMessage();
-        }
-
-        private void UserInputTextBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-                SendUserMessage();
-            }
-        }
+        private void SendButton_Click(object sender, RoutedEventArgs e) => SendUserMessage();
+        private void UserInputTextBox_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Enter) SendUserMessage(); }
 
         private void SendUserMessage()
         {
@@ -65,32 +48,26 @@ namespace CybersecurityChatbotGUI
             AddUserMessage(userInput);
             UserInputTextBox.Clear();
 
-            // Process the input and get response
             string response = chatbot.ProcessInput(userInput);
             AddBotMessage(response);
 
-            // Update status
-            StatusTextBlock.Text = $"Helping {chatbot.GetUserName()} learn about {chatbot.GetUserInterest()}";
-        }
+            // Update status bar
+            StatusTextBlock.Text = $"🛡️ Helping {chatbot.GetUserName()} learn about {chatbot.GetUserInterest()}";
 
-        private void AddUserMessage(string message)
-        {
-            chatMessages.Add($"🧑 You: {message}");
-            ScrollToBottom();
-        }
-
-        private void AddBotMessage(string message)
-        {
-            chatMessages.Add($"🤖 Bot: {message}");
-            ScrollToBottom();
-        }
-
-        private void ScrollToBottom()
-        {
-            if (ChatHistoryListBox.Items.Count > 0)
+            // Update quiz status if quiz is active
+            if (chatbot.IsQuizActive())
             {
-                ChatHistoryListBox.ScrollIntoView(ChatHistoryListBox.Items[ChatHistoryListBox.Items.Count - 1]);
+                QuizStatusTextBlock.Text = $"📝 Quiz in progress: Question {chatbot.GetQuizProgress() + 1}/{chatbot.GetTotalQuestions()}";
+                ScoreTextBlock.Text = $"Score: {chatbot.GetQuizScore()} correct";
+            }
+            else
+            {
+                QuizStatusTextBlock.Text = "";
+                ScoreTextBlock.Text = "";
             }
         }
+
+        private void AddUserMessage(string message) => chatMessages.Add($"🧑 You: {message}");
+        private void AddBotMessage(string message) => chatMessages.Add($"🤖 Bot: {message}");
     }
 }
